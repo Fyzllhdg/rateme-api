@@ -100,7 +100,7 @@ let follows = [
 // **GEÇİCİ ÇÖZÜM: Oturum Açan Kullanıcının Kimliği (GERÇEKTE DAHA İYİ BİR YÖNTEM GEREKLİ)**
 let currentUserId = null;
 
-router.get('/top-users', (req, res) => {
+router.get('/top-users', authenticateToken, (req, res) => {
     try {
         const { search = '', page = 1, limit = 20 } = req.query;
 
