@@ -11,12 +11,14 @@ app.use(express.json());
  const usersRoutes   = require('./routes/users');
  const postsRoutes   = require('./routes/posts');
  const storiesRoutes = require('./routes/stories');
+ const followRoutes = require('./routes/follow');
 
 
  // Mount et
  app.use('/users', usersRoutes);
  app.use('/posts', postsRoutes);
  app.use('/stories', storiesRoutes);
+ app.use('/follow', followRoutes);
  
 
 

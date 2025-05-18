@@ -1,68 +1,73 @@
+// routes/posts.js
+
 const express = require('express');
 const router = express.Router();
+const authenticateToken = require('../middleware/auth');
+const db = require('../config/db');
 
-// Örnek gönderi verileri (burayı veritabanınızdan gelecek gerçek verilerle değiştireceksiniz)
-const dummyPosts = [
-  {
-    id: 1,
-    image: 'https://picsum.photos/id/20/400/700',
-    avatar: 'https://i.pravatar.cc/150?img=10',
-    username: 'kullanici_a',
-    title: 'İlk Gönderi!',
-    description: 'Bu benim ilk gönderim, umarım beğenirsiniz.',
-    likes: 55,
-    comments: [
-      { id: 101, username: 'yorumcu_1', avatar: 'https://i.pravatar.cc/150?img=31', text: 'Harika!' },
-      { id: 102, username: 'yorumcu_2', avatar: 'https://i.pravatar.cc/150?img=32', text: 'Çok beğendim!' },
-    ],
-    time: '2 saat önce'
-  },
-  {
-    id: 2,
-    image: 'https://picsum.photos/id/21/400/700',
-    avatar: 'https://i.pravatar.cc/150?img=11',
-    username: 'kullanici_b',
-    title: 'Manzara Harika',
-    description: 'Günün batışı...',
-    likes: 120,
-    comments: [
-      { id: 201, username: 'yorumcu_3', avatar: 'https://i.pravatar.cc/150?img=33', text: 'Muhteşem!' },
-    ],
-    time: '4 saat önce'
-  },
-  {
-    id: 3,
-    image: 'https://picsum.photos/id/22/400/700',
-    avatar: 'https://i.pravatar.cc/150?img=12',
-    username: 'kullanici_c',
-    title: 'Şehir Hayatı',
-    description: 'Kalabalık ama keyifli.',
-    likes: 80,
-    comments: [
-      { id: 301, username: 'yorumcu_4', avatar: 'https://i.pravatar.cc/150?img=34', text: 'Çok güzel bir kare!' },
-    ],
-    time: '7 saat önce'
-  },
-  {
-    id: 4,
-    image: 'https://picsum.photos/id/23/400/700',
-    avatar: 'https://i.pravatar.cc/150?img=13',
-    username: 'kullanici_d',
-    title: 'Doğa Yürüyüşü',
-    description: 'Temiz hava, bol oksijen.',
-    likes: 150,
-    comments: [
-      { id: 401, username: 'yorumcu_5', avatar: 'https://i.pravatar.cc/150?img=35', text: 'Nerede çektiniz burayı?' },
-      { id: 402, username: 'yorumcu_6', avatar: 'https://i.pravatar.cc/150?img=36', text: 'Harika bir manzara!' },
-      { id: 403, username: 'yorumcu_7', avatar: 'https://i.pravatar.cc/150?img=37', text: 'Ben de gitmek istiyorum.' },
-    ],
-    time: '1 gün önce'
+// Yeni post oluşturma
+router.post('/', authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+  const { content, media_url, caption, media_type } = req.body;
+
+  try {
+    await db.query(
+      'INSERT INTO posts (user_id, content, media_url, caption, media_type, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
+      [userId, content, media_url, caption, media_type]
+    );
+    res.status(201).json({ message: 'Post oluşturuldu' });
+  } catch (err) {
+    console.error('Post oluşturma hatası:', err);
+    res.status(500).json({ message: 'Sunucu hatası' });
   }
-];
+});
 
-// GET /posts isteğini karşılayan rota
-router.get('/', (req, res) => {
-  res.json(dummyPosts);
+// Tüm postları getir (opsiyonel: kullanıcıya göre filtreleme)
+router.get('/', authenticateToken, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT p.*, u.username, u.avatar FROM posts p
+       JOIN users u ON u.id = p.user_id
+       ORDER BY p.created_at DESC`
+    );
+    res.json({ data: rows });
+  } catch (err) {
+    console.error('Post çekme hatası:', err);
+    res.status(500).json({ message: 'Sunucu hatası' });
+  }
+});
+
+// Belirli bir kullanıcıya ait postlar
+router.get('/user/:userId', async (req, res) => {
+  const userId = parseInt(req.params.userId);
+  try {
+    const [rows] = await db.query(
+      'SELECT * FROM posts WHERE user_id = ? ORDER BY created_at DESC',
+      [userId]
+    );
+    res.json({ data: rows });
+  } catch (err) {
+    console.error('Kullanıcı postları hatası:', err);
+    res.status(500).json({ message: 'Sunucu hatası' });
+  }
+});
+
+// Post silme
+router.delete('/:id', authenticateToken, async (req, res) => {
+  const postId = parseInt(req.params.id);
+  const userId = req.user.id;
+  try {
+    const [rows] = await db.query('SELECT * FROM posts WHERE id = ?', [postId]);
+    if (!rows.length || rows[0].user_id !== userId) {
+      return res.status(403).json({ message: 'Yetkisiz işlem' });
+    }
+
+    await db.query('DELETE FROM posts WHERE id = ?', [postId]);
+    res.json({ message: 'Post silindi' });
+  } catch (err) {
+    console.error('Post silme hatası:', err);
+    res.status(500).json({ message: 'Sunucu hatası' });
+  }
 });
 
 module.exports = router;
