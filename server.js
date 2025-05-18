@@ -1,5 +1,6 @@
 require('dotenv').config();    // .env dosyasını yükler
 
+
 const express = require('express');
 const app = express();
 const PORT = process.env.PORT || 3000;

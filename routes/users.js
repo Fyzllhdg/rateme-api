@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authenticateToken = require('../middleware/auth');
+const jwt = require('jsonwebtoken');
 
 
 // Geçici kullanıcı verileri (Gerçek uygulamada burası veritabanı bağlantısı olacak)
@@ -161,7 +162,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Tüm kullanıcıları getirme rotası
-router.get('/', (req, res) => {
+router.get('/', authenticateToken, (req, res) => {
     res.json({ data: users });
 });
 
@@ -235,41 +236,53 @@ router.delete('/:id', (req, res) => {
     }
 });
 
-// LOGİN Rotası
-router.post('/login', (req, res) => {
-    const { login, password } = req.body;
-    const user = users.find((u) => u.email === login || u.username === login);
 
-    if (!user || user.password !== password) {
-        return res.status(401).json({ message: 'E-posta/Kullanıcı adı veya şifre hatalı.' });
+router.post('/login', (req, res) => {
+  const { login, password } = req.body;
+  const user = users.find((u) => u.email === login || u.username === login);
+
+  if (!user || user.password !== password) {
+    return res.status(401).json({ message: 'E-posta/Kullanıcı adı veya şifre hatalı.' });
+  }
+
+  try {
+    if (!process.env.JWT_SECRET) {
+      console.error("JWT_SECRET tanımsız!");
+      return res.status(500).json({ message: "Token üretilemedi. Ortam değişkeni eksik." });
     }
 
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     return res.status(200).json({
-        message: 'Giriş başarılı!',
-        token,
-        user: {
-            _id: user.id,
-            fullName: user.name,
-            username: user.username,
-            email: user.email,
-            bio: user.bio,
-            avatar: user.avatar,
-            link: user.link,
-            posts: user.postsCount,
-            followers: user.followersCount,
-            following: user.followingCount,
-            rating: user.rating,
-            votes: user.votes,
-            highlights: user.highlights,
-            comments: user.comments,
-            postsData: user.postsData,
-            isPrivate: user.isPrivate,
-            country: user.country,
-        }
+      message: 'Giriş başarılı!',
+      token,
+      user: {
+        _id: user.id,
+        fullName: user.name,
+        username: user.username,
+        email: user.email,
+        bio: user.bio,
+        avatar: user.avatar,
+        link: user.link,
+        posts: user.postsCount,
+        followers: user.followersCount,
+        following: user.followingCount,
+        rating: user.rating,
+        votes: user.votes,
+        highlights: user.highlights,
+        comments: user.comments,
+        postsData: user.postsData,
+        isPrivate: user.isPrivate,
+        country: user.country,
+      }
     });
+
+  } catch (err) {
+    console.error("JWT token üretme hatası:", err);
+    return res.status(500).json({ message: "Sunucu hatası: Token oluşturulamadı." });
+  }
 });
+
 
 
 // Bilgi Güncelleme Rotası
