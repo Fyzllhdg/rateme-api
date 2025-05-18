@@ -5,6 +5,7 @@ const router = express.Router();
 const authenticateToken = require('../middleware/auth');
 const db = require('../config/db');
 
+
 // Bildirim türleri örnekleri:
 // - follow (takip edildi)
 // - follow_accepted (takip isteği kabul edildi)
