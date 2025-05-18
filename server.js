@@ -22,7 +22,7 @@ app.use(express.json());
 
 // Bir temel GET isteği rotası tanımla (bu kısım zaten vardı)
 app.get('/', (req, res) => {
-  res.send('Merhaba, RAMAZAN burası benim RESTful API\'m!');
+  res.send('Merhaba, RateME burası benim RESTful API\'m!');
 });
 
 
