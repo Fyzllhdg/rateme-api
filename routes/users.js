@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const authenticateToken = require('../middleware/auth');
+
 
 // Geçici kullanıcı verileri (Gerçek uygulamada burası veritabanı bağlantısı olacak)
 let users = [
@@ -236,22 +238,19 @@ router.delete('/:id', (req, res) => {
 // LOGİN Rotası
 router.post('/login', (req, res) => {
     const { login, password } = req.body;
-    const user = users.find(
-        (u) => u.email === login || u.username === login
-    );
+    const user = users.find((u) => u.email === login || u.username === login);
 
     if (!user || user.password !== password) {
         return res.status(401).json({ message: 'E-posta/Kullanıcı adı veya şifre hatalı.' });
     }
 
-    // Başarılı giriş sonrası currentUserId'yi ayarla
-    currentUserId = user.id;
-    console.log('Kullanıcı giriş yaptı, currentUserId:', currentUserId);
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
     return res.status(200).json({
         message: 'Giriş başarılı!',
+        token,
         user: {
-            _id: user.id, // Frontend'de _id bekleniyor, burada id kullanıyoruz
+            _id: user.id,
             fullName: user.name,
             username: user.username,
             email: user.email,
@@ -271,6 +270,7 @@ router.post('/login', (req, res) => {
         }
     });
 });
+
 
 // Bilgi Güncelleme Rotası
 router.patch('/:id', (req, res) => {
