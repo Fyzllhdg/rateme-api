@@ -32,15 +32,18 @@ router.post('/', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+
     await db.query(
-      `INSERT INTO users (username, name, password, email, phone, country, bio, link, avatar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [username, name, hashedPassword, email, phone, country, bio, link, avatar]
-    );
+  `INSERT INTO users (username, name, password, email, phone, country, bio, link, avatar) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  [username, name, hashedPassword, email, phone, country, bio, link, avatar]
+);
+
     res.status(201).json({ message: 'Kayıt başarılı' });
   } catch (err) {
-    console.error('Kayıt hatası:', err);
-    res.status(500).json({ message: 'Sunucu hatası' });
-  }
+  console.error('Kayıt hatası:', err.message); // Hata nedenini konsola yaz
+  res.status(500).json({ message: 'Sunucu hatası', error: err.message });
+}
+
 });
 
 // Geçici kodları tutan yapı (veritabanında da tutulabilir)
@@ -144,7 +147,11 @@ router.patch('/:id', authenticateToken, async (req, res) => {
     const values = Object.values(fields);
     const setStr = keys.map(key => `${key} = ?`).join(', ');
 
-    await db.query(`UPDATE users SET ${setStr} WHERE id = ?`, [...values, id]);
+   await db.query(
+  `UPDATE users SET ${setStr} WHERE id = ?`,
+  [...values, id]
+);
+
     res.json({ message: 'Kullanıcı güncellendi' });
   } catch (err) {
     console.error('Güncelleme hatası:', err);
